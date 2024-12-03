@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-url = "http://admissions.rpi.edu/"
+url = "http://www.rpi.edu/"
 response = requests.get(url)
 
 # Parse HTML
