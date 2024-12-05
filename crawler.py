@@ -7,6 +7,7 @@ import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
+#testing
 def fetch_page_content(url):
     """
     Fetch the content of the web page from the given URL.
