@@ -128,9 +128,17 @@ if __name__ == "__main__":
         client = MongoClient(os.getenv("MONGO_URI"))
         db = client.test
         collection = db.RAW
-        print(collection)
         result = collection.find()
         print(result)
+        #inserting will use:
+        """
+        ret = collection.insert_1(page_json)
+        print(ret)
+        """
+
+        print("Stuff in Result")
+        for document in result:
+            print(document)
 
 
     except Exception as e:
