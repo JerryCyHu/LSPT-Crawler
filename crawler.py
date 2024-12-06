@@ -6,6 +6,7 @@ import json
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from link import Link
 
 def fetch_page_content(url):
     """
@@ -90,52 +91,35 @@ def process_web_page(url):
     else:
         raise Exception(f"Failed to retrieve the page. Status code: {status_code}")
 
-def parse_relevant_info(link):
-    """
-    Removes http/https part from the given link and returns the relevant info.
-    :param link: link to be read
-    :return cleaned_link: relevant part of the link for remove_duplicates function
-    """
-    components_list = link.split(':')
-    component_1 = components_list[1]
-    cleaned_link = component_1[2::]
-    return cleaned_link
-
-def remove_duplicates(links):
-    """
-    Handles issues of having both https and http links for same page by choosing first
-    occurrence.
-    :param links: Original set of URLs
-    :return cleaned_set: cleaned set of URLs
-    """
-    url_dict = {}
-    cleaned_set = set()
-    for link in links:
-        cleaned_link = parse_relevant_info(link)
-        if cleaned_link in url_dict.keys():
-            url_dict[cleaned_link] += 1
-        else:
-            url_dict[cleaned_link] = 1
-            cleaned_set.add(link)
-
-    return cleaned_set
-
 # Example usage
 if __name__ == "__main__":
     target_url = "https://www.rpi.edu/"
+
+    #domain_name: link object
+    domain_links = dict()
+    root_link = Link(target_url)
+    domain_links[root_link.domain_name] = root_link
 
     try:
         load_dotenv()
         # Process the web page
         extracted_urls, page_json = process_web_page(target_url)
 
-        #removing duplicate references
-        extracted_urls = remove_duplicates(extracted_urls)
+        for url in extracted_urls:
+            domain_name = Link.url_to_domain_name(url)
+            if domain_name in domain_links.keys():
+                link_obj = domain_links[domain_name]
+                link_obj.add_url(url)
+            else:
+                link_obj = Link(url)
+                domain_links[domain_name] = link_obj
+
 
         # Print the extracted URLs
         print("Extracted URLs:")
-        for url in extracted_urls:
-            print(url)
+        for link in domain_links.values():
+            out_links = link.give_out_links()
+            print(out_links)
 
         # Print the JSON object
         print("\nPage JSON:")
