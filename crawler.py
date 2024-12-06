@@ -125,13 +125,31 @@ if __name__ == "__main__":
         db = client.test
         collection = db.RAW
         result = collection.find()
-        #inserting will use:
-        ret = collection.insert_one(page_json)
-        print(ret)
+        # #inserting will use:
+        # ret = collection.insert_one(page_json)
+        # print(ret)
 
-        print("Stuff in Result")
-        for document in result:
-            print(document)
+        # print("Stuff in Result")
+        # for document in result:
+        #     print(document)
+
+        # The URL to send the POST request
+        print("start sending LA")
+        url = "http://lspt-link-analysis.cs.rpi.edu:1234/crawling/add_nodes"
+
+        # The data to send as a string (you can adjust this to your use case)
+        data = {"url": "www.youtube.com", "child_nodes": ["www.google.com"]}
+
+        # Sending the POST request
+        try:
+            response = requests.post(url, json=data)  # Using JSON payload
+            # Checking the response
+            if response.status_code == 200:
+                print("Success:", response.json())  # Print the response data
+            else:
+                print("Error:", response.status_code, response.text)
+        except requests.exceptions.RequestException as e:
+            print("Request failed:", e)
 
 
     except Exception as e:
