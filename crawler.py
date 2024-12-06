@@ -121,20 +121,13 @@ if __name__ == "__main__":
             out_links = link.give_out_links()
             print(out_links)
 
-        # Print the JSON object
-        print("\nPage JSON:")
-        print(json.dumps(page_json, indent=4))
-
         client = MongoClient(os.getenv("MONGO_URI"))
         db = client.test
         collection = db.RAW
         result = collection.find()
-        print(result)
         #inserting will use:
-        """
-        ret = collection.insert_1(page_json)
+        ret = collection.insert_one(page_json)
         print(ret)
-        """
 
         print("Stuff in Result")
         for document in result:
