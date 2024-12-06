@@ -90,6 +90,24 @@ def process_web_page(url):
         return urls, json_data
     else:
         raise Exception(f"Failed to retrieve the page. Status code: {status_code}")
+    
+def send_analysis(info):
+    '''
+    info is jason format
+    example info: {"url": "www.google.com", "child_nodes": []}
+    '''
+    url = "http://lspt-link-analysis.cs.rpi.edu:1234/crawling/add_nodes"
+
+    # Sending the POST request
+    try:
+        response = requests.post(url, json=data)  # Using JSON payload
+        # Checking the response
+        if response.status_code == 200:
+            print("Success:", response.json())  # Print the response data
+        else:
+            print("Error:", response.status_code, response.text)
+    except requests.exceptions.RequestException as e:
+        print("Request failed:", e)
 
 # Example usage
 if __name__ == "__main__":
@@ -134,23 +152,9 @@ if __name__ == "__main__":
         #     print(document)
 
         # The URL to send the POST request
-        print("start sending LA")
-        url = "http://lspt-link-analysis.cs.rpi.edu:1234/crawling/add_nodes"
-
         # The data to send as a string (you can adjust this to your use case)
-        data = {"url": "www.youtube.com", "child_nodes": ["www.google.com"]}
-
-        # Sending the POST request
-        try:
-            response = requests.post(url, json=data)  # Using JSON payload
-            # Checking the response
-            if response.status_code == 200:
-                print("Success:", response.json())  # Print the response data
-            else:
-                print("Error:", response.status_code, response.text)
-        except requests.exceptions.RequestException as e:
-            print("Request failed:", e)
-
+        info = {"url": "www.youtube.com", "child_nodes": ["www.google.com"]}
+        send_analysis(info)
 
     except Exception as e:
         print(str(e))
