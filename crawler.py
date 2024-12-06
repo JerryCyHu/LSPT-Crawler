@@ -91,7 +91,7 @@ def process_web_page(url):
     else:
         raise Exception(f"Failed to retrieve the page. Status code: {status_code}")
     
-def send_analysis(info):
+def send_analysis(data):
     '''
     info is jason format
     example info: {"url": "www.google.com", "child_nodes": []}
@@ -153,8 +153,8 @@ if __name__ == "__main__":
 
         # The URL to send the POST request
         # The data to send as a string (you can adjust this to your use case)
-        info = {"url": "www.youtube.com", "child_nodes": ["www.google.com"]}
-        send_analysis(info)
+        data = {"url": "www.youtube.com", "child_nodes": ["www.def.com"]}
+        send_analysis(data)
 
     except Exception as e:
         print(str(e))
