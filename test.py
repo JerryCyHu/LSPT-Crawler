@@ -1,30 +1,108 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from bson.objectid import ObjectId
+from pymongo.errors import PyMongoError
+from requests.exceptions import RequestException
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from crawler import MongoDBClient, crawl, send_analysis, send_doc
 
-url = "http://www.rpi.edu/"
-response = requests.get(url)
+class TestMongoDBClient(unittest.TestCase):
+    def setUp(self):
+        self.mock_client = MagicMock()
+        self.mock_collection = self.mock_client.test.RAW
+        self.db_client = MongoDBClient()
+        self.db_client.client = self.mock_client  # Mock the MongoDB client
 
-# Parse HTML
-soup = BeautifulSoup(response.content, "html.parser")
+    def test_insert_document_success(self):
+        page_json = {
+            "_id": "123",
+            "url": "https://www.example.com",
+            "text_length": 50,
+            "text": "Sample HTML content",
+            "type": "html"
+        }
+        self.db_client.insert_document(page_json)
+        self.mock_collection.insert_one.assert_called_once_with(page_json)
 
-def get_full_urls(base_url, page_html):
-    """
-    Extract and return all full URLs from the given page's HTML.
+    def test_insert_document_failure(self):
+        self.mock_collection.insert_one.side_effect = PyMongoError("Insert failed")
+        page_json = {"key": "value"}
+        with self.assertLogs() as log:
+            self.db_client.insert_document(page_json)
+        self.assertIn("Error inserting document", log.output[0])
 
-    :param base_url: The base URL of the web page
-    :param page_html: Parsed HTML of the web page
-    :return: A list of absolute URLs
-    """
-    urls = set()
-    for link in page_html.find_all('a', href=True):
-        full_url = urljoin(base_url, link['href'])  # Convert relative to absolute
-        urls.add(full_url)
-    return urls
+class TestCrawl(unittest.TestCase):
+    @patch('requests.get')
+    def test_crawl_success(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = "<html><body><a href='/link1'>Link1</a></body></html>"
+        mock_get.return_value = mock_response
 
-# Get all URLs from the page
-urls = get_full_urls(url, soup)
+        extracted_urls, page_json = crawl("https://www.example.com")
 
-# Print each URL
-for full_url in urls:
-    print(full_url)
+        self.assertIn("https://www.example.com/link1", extracted_urls)
+        self.assertEqual(page_json['url'], "https://www.example.com")
+        self.assertEqual(page_json['type'], "html")
+
+    @patch('requests.get')
+    def test_crawl_failure(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_get.return_value = mock_response
+
+        with self.assertRaises(Exception) as context:
+            crawl("https://www.example.com")
+        self.assertIn("Failed to retrieve the page", str(context.exception))
+
+class TestSendAnalysis(unittest.TestCase):
+    @patch('requests.post')
+    def test_send_analysis_success(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"status": "success"}
+        mock_post.return_value = mock_response
+
+        info = {"url": "www.google.com", "child_nodes": []}
+        with self.assertLogs() as log:
+            send_analysis(info)
+        self.assertIn("Success", log.output[0])
+
+    @patch('requests.post')
+    def test_send_analysis_failure(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.text = "Internal Server Error"
+        mock_post.return_value = mock_response
+
+        info = {"url": "www.google.com", "child_nodes": []}
+        with self.assertLogs() as log:
+            send_analysis(info)
+        self.assertIn("Error", log.output[0])
+
+    @patch('requests.post', side_effect=RequestException("Request failed"))
+    def test_send_analysis_request_exception(self, mock_post):
+        info = {"url": "www.google.com", "child_nodes": []}
+        with self.assertLogs() as log:
+            send_analysis(info)
+        self.assertIn("Request failed", log.output[0])
+
+class TestSendDoc(unittest.TestCase):
+    def setUp(self):
+        self.mock_db_client = MagicMock()
+
+    def test_send_doc_success(self):
+        page_json = {
+            "_id": str(ObjectId()),
+            "url": "https://www.example.com",
+            "text_length": 50,
+            "text": "Sample HTML content",
+            "type": "html"
+        }
+
+        send_doc(page_json, self.mock_db_client)
+        self.mock_db_client.insert_document.assert_called_once_with(page_json)
+
+if __name__ == "__main__":
+    unittest.main()
